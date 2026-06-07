@@ -1,0 +1,4 @@
+Changes of Raku package "Math::DistanceFunctions::Native"
+
+0.1.2 2026-06-07
+    - Implemented complex number distance functions, vector norms, and dot product.
