@@ -474,3 +474,52 @@ float VectorNormComplexFloat(const complex float *vector, int count, const char 
 
     return result;
 }
+
+//===================================================================
+double ComplexDistanceFunction4Args(
+    const char *name,
+    const double *vectorARe,
+    const double *vectorAIm,
+    const double *vectorBRe,
+    const double *vectorBIm,
+    int count
+) {
+    if (count < 0) {
+        return NAN;
+    }
+
+    complex double *vectorA = (complex double *)malloc((size_t)count * sizeof(complex double));
+    complex double *vectorB = (complex double *)malloc((size_t)count * sizeof(complex double));
+
+    if (vectorA == NULL || vectorB == NULL) {
+        free(vectorA);
+        free(vectorB);
+        return NAN;
+    }
+
+    for (int i = 0; i < count; i++) {
+        vectorA[i] = vectorARe[i] + vectorAIm[i] * I;
+        vectorB[i] = vectorBRe[i] + vectorBIm[i] * I;
+    }
+
+    double result;
+    if (strcmp(name, "SquaredEuclideanDistance") == 0) {
+        result = SquaredEuclideanDistanceComplex(vectorA, vectorB, count);
+    } else if (strcmp(name, "EuclideanDistance") == 0) {
+        result = EuclideanDistanceComplex(vectorA, vectorB, count);
+    } else if (strcmp(name, "CosineDistance") == 0) {
+        result = CosineDistanceComplex(vectorA, vectorB, count);
+    } else {
+        // Unknown method
+        result = NAN;
+    }
+    // Cannot be use that easily since the DotProduct result is complex
+    //    } else if (strcmp(name, "DotProduct") == 0) {
+    //       complex_result = DotProductComplex(vectorA, vectorB, count);
+    //    }
+
+    free(vectorA);
+    free(vectorB);
+
+    return result;
+}

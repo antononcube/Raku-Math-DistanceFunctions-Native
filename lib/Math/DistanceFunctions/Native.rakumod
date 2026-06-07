@@ -29,6 +29,12 @@ sub DotProductFloat(CArray[num32], CArray[num32], int32 --> num32) is native($li
 sub VectorNorm(CArray[num64], int32, Str --> num64) is native($library) {*}
 sub VectorNormFloat(CArray[num32], int32, Str --> num32) is native($library) {*}
 
+sub ComplexDistanceFunction4Args(Str, CArray[num64], CArray[num64], CArray[num64], CArray[num64], int32 --> num64) is native($library) {*}
+
+#-----------------------------------------------------------
+
+sub is-complex-array($x) {$x ~~ (Array:D | List:D | Seq:D) && $x.all ~~ Numeric:D && $x.any ~~ Complex:D }
+
 #-----------------------------------------------------------
 our proto sub squared-euclidean-distance($v1, $v2 --> Numeric:D) is export {*}
 
@@ -38,20 +44,34 @@ multi sub squared-euclidean-distance($v1, $v2 --> Numeric:D) {
     }
 
     if $v1 ~~ CArray[num64] || $v2 ~~ CArray[num64] {
+
         return SquaredEuclideanDistance(
                 $v1 ~~ CArray[num64] ?? $v1 !! copy-to-carray($v1, num64),
                 $v2 ~~ CArray[num64] ?? $v2 !! copy-to-carray($v2, num64),
-                $v1.elems);
+                $v1.elems)
+
     } elsif $v1 ~~ CArray[num32] && $v2 ~~ CArray[num32] {
-        return SquaredEuclideanDistanceFloat($v1, $v2, $v1.elems);
+
+        return SquaredEuclideanDistanceFloat($v1, $v2, $v1.elems)
+
+    } elsif is-complex-array($v1) || is-complex-array($v2) {
+
+        return ComplexDistanceFunction4Args(
+                'SquaredEuclideanDistance',
+                copy-to-carray($v1».Complex».re, num64),
+                copy-to-carray($v1».Complex».im, num64),
+                copy-to-carray($v2».Complex».re, num64),
+                copy-to-carray($v2».Complex».im, num64),
+                $v1.elems)
+
     } else {
+
         return SquaredEuclideanDistance(
                 $v1 ~~ CArray ?? $v1 !! copy-to-carray($v1, num64),
                 $v2 ~~ CArray ?? $v2 !! copy-to-carray($v2, num64),
-                $v1.elems);
+                $v1.elems)
     }
 }
-
 
 
 #-----------------------------------------------------------
@@ -63,17 +83,31 @@ multi sub euclidean-distance($v1, $v2 --> Numeric:D) {
     }
 
     if $v1 ~~ CArray[num64] || $v2 ~~ CArray[num64] {
+
         return EuclideanDistance(
                 $v1 ~~ CArray[num64] ?? $v1 !! copy-to-carray($v1, num64),
                 $v2 ~~ CArray[num64] ?? $v2 !! copy-to-carray($v2, num64),
-                $v1.elems);
+                $v1.elems)
+
     } elsif $v1 ~~ CArray[num32] && $v2 ~~ CArray[num32] {
+
         return EuclideanDistanceFloat($v1, $v2, $v1.elems);
+
+    } elsif is-complex-array($v1) || is-complex-array($v2) {
+
+        return ComplexDistanceFunction4Args(
+                'EuclideanDistance',
+                copy-to-carray($v1».Complex».re, num64),
+                copy-to-carray($v1».Complex».im, num64),
+                copy-to-carray($v2».Complex».re, num64),
+                copy-to-carray($v2».Complex».im, num64),
+                $v1.elems)
+
     } else {
         return EuclideanDistance(
                 $v1 ~~ CArray ?? $v1 !! copy-to-carray($v1, num64),
                 $v2 ~~ CArray ?? $v2 !! copy-to-carray($v2, num64),
-                $v1.elems);
+                $v1.elems)
     }
 }
 
@@ -86,13 +120,28 @@ multi sub cosine-distance($v1, $v2 --> Numeric:D) {
     }
 
     if $v1 ~~ CArray[num64] || $v2 ~~ CArray[num64] {
+
         return CosineDistance(
                 $v1 ~~ CArray[num64] ?? $v1 !! copy-to-carray($v1, num64),
                 $v2 ~~ CArray[num64] ?? $v2 !! copy-to-carray($v2, num64),
-                $v1.elems);
+                $v1.elems)
+
     } elsif $v1 ~~ CArray[num32] && $v2 ~~ CArray[num32] {
-        return CosineDistanceFloat($v1, $v2, $v1.elems);
+
+        return CosineDistanceFloat($v1, $v2, $v1.elems)
+
+    } elsif is-complex-array($v1) || is-complex-array($v2) {
+
+        return ComplexDistanceFunction4Args(
+                'CosineDistance',
+                copy-to-carray($v1».Complex».re, num64),
+                copy-to-carray($v1».Complex».im, num64),
+                copy-to-carray($v2».Complex».re, num64),
+                copy-to-carray($v2».Complex».im, num64),
+                $v1.elems)
+
     } else {
+
         return CosineDistance(
                 $v1 ~~ CArray ?? $v1 !! copy-to-carray($v1, num64),
                 $v2 ~~ CArray ?? $v2 !! copy-to-carray($v2, num64),
@@ -109,17 +158,32 @@ multi sub dot-product($v1, $v2 --> Numeric:D) {
     }
 
     if $v1 ~~ CArray[num64] || $v2 ~~ CArray[num64] {
+
         return DotProduct(
                 $v1 ~~ CArray[num64] ?? $v1 !! copy-to-carray($v1, num64),
                 $v2 ~~ CArray[num64] ?? $v2 !! copy-to-carray($v2, num64),
-                $v1.elems);
+                $v1.elems)
+
     } elsif $v1 ~~ CArray[num32] && $v2 ~~ CArray[num32] {
-        return DotProductFloat($v1, $v2, $v1.elems);
+
+        return DotProductFloat($v1, $v2, $v1.elems)
+
+    } elsif is-complex-array($v1) || is-complex-array($v2) {
+
+        return ComplexDistanceFunction4Args(
+                'DotProduct',
+                copy-to-carray($v1».Complex».re, num64),
+                copy-to-carray($v1».Complex».im, num64),
+                copy-to-carray($v2».Complex».re, num64),
+                copy-to-carray($v2».Complex».im, num64),
+                $v1.elems)
+
     } else {
+
         return DotProduct(
                 $v1 ~~ CArray ?? $v1 !! copy-to-carray($v1, num64),
                 $v2 ~~ CArray ?? $v2 !! copy-to-carray($v2, num64),
-                $v1.elems);
+                $v1.elems)
     }
 }
 
