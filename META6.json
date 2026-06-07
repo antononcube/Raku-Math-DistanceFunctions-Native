@@ -1,7 +1,7 @@
 {
   "name": "Math::DistanceFunctions::Native",
   "description": "Raku package for distance functions based on C implementations.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "perl": "6.d",
   "authors": [
     "Anton Antonov"
