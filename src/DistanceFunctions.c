@@ -8,6 +8,14 @@
 #endif
 
 //=====================================================================
+// Definition of the ComplexStruct struct
+// Used only by ComplexDotProduct4Args
+typedef struct ComplexStruct {
+    double re;
+    double im;
+} ComplexStruct;
+
+//=====================================================================
 double SquaredEuclideanDistance(const double *vectorA, const double *vectorB, int count) {
     double result = 0.0;
 
@@ -476,6 +484,8 @@ float VectorNormComplexFloat(const complex float *vector, int count, const char 
 }
 
 //===================================================================
+// Adapters
+//===================================================================
 double ComplexDistanceFunction4Args(
     const char *name,
     const double *vectorARe,
@@ -513,13 +523,77 @@ double ComplexDistanceFunction4Args(
         // Unknown method
         result = NAN;
     }
-    // Cannot be use that easily since the DotProduct result is complex
-    //    } else if (strcmp(name, "DotProduct") == 0) {
-    //       complex_result = DotProductComplex(vectorA, vectorB, count);
-    //    }
 
     free(vectorA);
     free(vectorB);
 
     return result;
+}
+
+//-------------------------------------------------------------------
+double ComplexVectorNorm2Args(
+    const double *vectorRe,
+    const double *vectorIm,
+    int count,
+    const char *type
+) {
+    if (count < 0) {
+        return NAN;
+    }
+
+    complex double *vector = (complex double *)malloc((size_t)count * sizeof(complex double));
+
+    if (vector == NULL) {
+        free(vector);
+        return NAN;
+    }
+
+    for (int i = 0; i < count; i++) {
+        vector[i] = vectorRe[i] + vectorIm[i] * I;
+    }
+
+    double result = VectorNormComplex(vector, count, type);
+
+    free(vector);
+
+    return result;
+}
+
+//-------------------------------------------------------------------
+int ComplexDotProduct4Args(
+    ComplexStruct *result,
+    const double *vectorARe,
+    const double *vectorAIm,
+    const double *vectorBRe,
+    const double *vectorBIm,
+    int count
+) {
+    if (count < 0) {
+        return 1;
+    }
+
+    complex double *vectorA = (complex double *)malloc((size_t)count * sizeof(complex double));
+    complex double *vectorB = (complex double *)malloc((size_t)count * sizeof(complex double));
+
+    if (vectorA == NULL || vectorB == NULL) {
+        free(vectorA);
+        free(vectorB);
+        return 2;
+    }
+
+    for (int i = 0; i < count; i++) {
+        vectorA[i] = vectorARe[i] + vectorAIm[i] * I;
+        vectorB[i] = vectorBRe[i] + vectorBIm[i] * I;
+    }
+
+    complex double res;
+    // Cannot be use that easily since the DotProduct result is complex
+    res = DotProductComplex(vectorA, vectorB, count);
+
+    free(vectorA);
+    free(vectorB);
+
+    result->re = creal(res);
+    result->im = cimag(res);
+    return 0;
 }

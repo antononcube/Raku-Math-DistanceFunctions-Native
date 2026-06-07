@@ -14,6 +14,12 @@ use NativeHelpers::Array;
 
 my constant $library = %?RESOURCES<libraries/DistanceFunctions>;
 
+class ComplexStruct is repr('CStruct') {
+    has num64 $.re;
+    has num64 $.im;
+    method value() { $!re + $!im * i }
+}
+
 sub SquaredEuclideanDistance(CArray[num64], CArray[num64], int32 --> num64) is native($library) {*}
 sub SquaredEuclideanDistanceFloat(CArray[num32], CArray[num32], int32 --> num32) is native($library) {*}
 
@@ -29,7 +35,13 @@ sub DotProductFloat(CArray[num32], CArray[num32], int32 --> num32) is native($li
 sub VectorNorm(CArray[num64], int32, Str --> num64) is native($library) {*}
 sub VectorNormFloat(CArray[num32], int32, Str --> num32) is native($library) {*}
 
+#-----------------------------------------------------------
+# Adapters
 sub ComplexDistanceFunction4Args(Str, CArray[num64], CArray[num64], CArray[num64], CArray[num64], int32 --> num64) is native($library) {*}
+
+sub ComplexVectorNorm2Args(CArray[num64], CArray[num64], int32, Str --> num64) is native($library) {*}
+
+sub ComplexDotProduct4Args(ComplexStruct is rw, CArray[num64], CArray[num64], CArray[num64], CArray[num64], int32 --> num64) is native($library) {*}
 
 #-----------------------------------------------------------
 
@@ -170,13 +182,18 @@ multi sub dot-product($v1, $v2 --> Numeric:D) {
 
     } elsif is-complex-array($v1) || is-complex-array($v2) {
 
-        return ComplexDistanceFunction4Args(
-                'DotProduct',
+        my $complexObj = ComplexStruct.new();
+        my $code = ComplexDotProduct4Args(
+                $complexObj,
                 copy-to-carray($v1».Complex».re, num64),
                 copy-to-carray($v1».Complex».im, num64),
                 copy-to-carray($v2».Complex».re, num64),
                 copy-to-carray($v2».Complex».im, num64),
-                $v1.elems)
+                $v1.elems);
+        # code values:
+        #   1 -- count of elements less than 0
+        #   2 -- malloc error (could not allocate)
+        return $complexObj.value()
 
     } else {
 
@@ -200,8 +217,19 @@ multi sub norm($v, Str:D :p(:$type) = '2' --> Numeric:D) {
         die "The first argument is expected to be a numeric array.";
     }
     if $v ~~ CArray[num32] {
-        return VectorNormFloat($v, $v.elems, $type);
+        return VectorNormFloat($v, $v.elems, $type)
+
+    } elsif is-complex-array($v) {
+
+        return ComplexVectorNorm2Args(
+                copy-to-carray($v».Complex».re, num64),
+                copy-to-carray($v».Complex».im, num64),
+                $v.elems,
+                $type)
+
     } else {
-        return VectorNorm($v ~~ CArray ?? $v !! copy-to-carray($v, num64), $v.elems, $type);
+
+        return VectorNorm($v ~~ CArray ?? $v !! copy-to-carray($v, num64), $v.elems, $type)
+
     }
 }

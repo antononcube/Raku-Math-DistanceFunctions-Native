@@ -19,4 +19,23 @@ is euclidean-distance([1+1i,1+1i,0], [0+1i,1,2+1i]), sqrt(7), 'Euclidean distanc
 ## 4
 is cosine-distance([1+1i,1+1i,0], [0+1i,1,2+1i]) - (1 - 1/sqrt(7)) ≤ 1e-10, True, 'Cosine distance over arrays';
 
+## 5
+subtest {
+    my @v1 = 1 + 1i, 1 + 1i, 0;
+    my @v2 = 0 + 1i, 1, 2 + 1i;
+    isa-ok dot-product(@v1, @v2), Complex:D, 'Dot product result type';
+
+    is dot-product(@v1, @v2), 2i, 'Dot product result';
+
+}, 'Dot product of complex vectors';
+
+## 6
+subtest {
+    my @v1 = 1 + 1i, 1 + 1i, 0;
+    isa-ok norm(@v1), Numeric:D, 'Vector norm result type';
+
+    is norm(@v1), 2, 'Vector product result';
+
+}, 'Vector norms of complex vectors';
+
 done-testing;
