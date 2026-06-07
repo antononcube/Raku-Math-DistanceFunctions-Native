@@ -1,73 +1,185 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
+#include <complex.h>
+#include <string.h>
+#include <stdlib.h>
 
-#if defined(__APPLE__) && defined(__MACH__)
-//=====================================================================
-// ACCELERATE
-//=====================================================================
-#include <Accelerate/Accelerate.h>
+#ifdef __APPLE__
+    #include <Accelerate/Accelerate.h>
+#endif
 
 //=====================================================================
-double SquaredEuclideanDistance(const double *vectorA, const double *vectorB, size_t count) {
+double SquaredEuclideanDistance(const double *vectorA, const double *vectorB, int count) {
     double result = 0.0;
-    double *diff = (double *)malloc(count * sizeof(double));
 
-    vDSP_vsubD(vectorB, 1, vectorA, 1, diff, 1, count);
-    vDSP_svesqD(diff, 1, &result, count);
+#ifdef __APPLE__
+    vDSP_distancesqD(vectorA, 1, vectorB, 1, &result, (vDSP_Length)count);
+#else
+    for (int i = 0; i < count; i++) {
+        double diff = vectorA[i] - vectorB[i];
+        result += diff * diff;
+    }
+#endif
 
-    free(diff);
     return result;
 }
 
 //-------------------------------------------------------------------
-float SquaredEuclideanDistanceFloat(const float *vectorA, const float *vectorB, size_t count) {
+float SquaredEuclideanDistanceFloat(const float *vectorA, const float *vectorB, int count) {
     float result = 0.0f;
-    float *diff = (float *)malloc(count * sizeof(float));
 
-    vDSP_vsub(vectorB, 1, vectorA, 1, diff, 1, count);
-    vDSP_svesq(diff, 1, &result, count);
+#ifdef __APPLE__
+    vDSP_distancesq(vectorA, 1, vectorB, 1, &result, (vDSP_Length)count);
+#else
+    for (int i = 0; i < count; i++) {
+        float diff = vectorA[i] - vectorB[i];
+        result += diff * diff;
+    }
+#endif
 
-    free(diff);
+    return result;
+}
+
+//-------------------------------------------------------------------
+double SquaredEuclideanDistanceComplex(const complex double *vectorA, const complex double *vectorB, int count) {
+    double result = 0.0;
+
+#ifdef __APPLE__
+    // Every complex double consists of two sequential doubles.
+    vDSP_Length totalElements = (vDSP_Length)count * 2;
+    vDSP_distancesqD((const double *)vectorA, 1, (const double *)vectorB, 1, &result, totalElements);
+#else
+    for (int i = 0; i < count; i++) {
+        complex double diff = vectorA[i] - vectorB[i];
+        double re = creal(diff);
+        double im = cimag(diff);
+        result += (re * re) + (im * im);
+    }
+#endif
+
+    return result;
+}
+
+//-------------------------------------------------------------------
+float SquaredEuclideanDistanceComplexFloat(const complex float *vectorA, const complex float *vectorB, int count) {
+    float result = 0.0f;
+
+#ifdef __APPLE__
+    // Every complex float consists of two sequential floats.
+    vDSP_Length totalElements = (vDSP_Length)count * 2;
+    vDSP_distancesq((const float *)vectorA, 1, (const float *)vectorB, 1, &result, totalElements);
+#else
+    for (int i = 0; i < count; i++) {
+        complex float diff = vectorA[i] - vectorB[i];
+        float re = crealf(diff);
+        float im = cimagf(diff);
+        result += (re * re) + (im * im);
+    }
+#endif
+
     return result;
 }
 
 //=====================================================================
-double EuclideanDistance(const double *vectorA, const double *vectorB, size_t count) {
+double EuclideanDistanceComplex(const complex double *vectorA, const complex double *vectorB, int count) {
+    double squaredDistance = SquaredEuclideanDistanceComplex(vectorA, vectorB, count);
+    return sqrt(squaredDistance);
+}
+
+//-------------------------------------------------------------------
+float EuclideanDistanceComplexFloat(const complex float *vectorA, const complex float *vectorB, int count) {
+    float squaredDistance = SquaredEuclideanDistanceComplexFloat(vectorA, vectorB, count);
+    return sqrtf(squaredDistance);
+}
+
+//=====================================================================
+double EuclideanDistance(const double *vectorA, const double *vectorB, int count) {
     double squaredDistance = SquaredEuclideanDistance(vectorA, vectorB, count);
     return sqrt(squaredDistance);
 }
 
 //-------------------------------------------------------------------
-float EuclideanDistanceFloat(const float *vectorA, const float *vectorB, size_t count) {
+float EuclideanDistanceFloat(const float *vectorA, const float *vectorB, int count) {
     float squaredDistance = SquaredEuclideanDistanceFloat(vectorA, vectorB, count);
-    return sqrt(squaredDistance);
+    return sqrtf(squaredDistance);
 }
 
 //=====================================================================
-double DotProduct(const double *vectorA, const double *vectorB, size_t count) {
+double DotProduct(const double *vectorA, const double *vectorB, int count) {
     double result = 0.0;
-    vDSP_dotprD(vectorA, 1, vectorB, 1, &result, count);
+
+#ifdef __APPLE__
+    vDSP_dotprD(vectorA, 1, vectorB, 1, &result, (vDSP_Length)count);
+#else
+    for (int i = 0; i < count; i++) {
+        result += vectorA[i] * vectorB[i];
+    }
+#endif
+
     return result;
 }
 
 //-------------------------------------------------------------------
-float DotProductFloat(const float *vectorA, const float *vectorB, size_t count) {
-    float result = 0.0;
-    vDSP_dotpr(vectorA, 1, vectorB, 1, &result, count);
+float DotProductFloat(const float *vectorA, const float *vectorB, int count) {
+    float result = 0.0f;
+
+#ifdef __APPLE__
+    vDSP_dotpr(vectorA, 1, vectorB, 1, &result, (vDSP_Length)count);
+#else
+    for (int i = 0; i < count; i++) {
+        result += vectorA[i] * vectorB[i];
+    }
+#endif
+
     return result;
 }
 
 //=====================================================================
-double CosineDistance(const double *vectorA, const double *vectorB, size_t count) {
-    double dotProduct = 0.0;
-    vDSP_dotprD(vectorA, 1, vectorB, 1, &dotProduct, count);
+complex double DotProductComplex(const complex double *vectorA, const complex double *vectorB, int count) {
+    complex double result = 0.0 + 0.0 * I;
 
+#ifdef __APPLE__
+    cblas_zdotu_sub(count, vectorA, 1, vectorB, 1, &result);
+#else
+    for (int i = 0; i < count; i++) {
+        result += vectorA[i] * vectorB[i];
+    }
+#endif
+
+    return result;
+}
+
+//-------------------------------------------------------------------
+complex float DotProductComplexFloat(const complex float *vectorA, const complex float *vectorB, int count) {
+    complex float result = 0.0f + 0.0f * I;
+
+#ifdef __APPLE__
+    cblas_cdotu_sub(count, vectorA, 1, vectorB, 1, &result);
+#else
+    for (int i = 0; i < count; i++) {
+        result += vectorA[i] * vectorB[i];
+    }
+#endif
+
+    return result;
+}
+
+//=====================================================================
+double CosineDistance(const double *vectorA, const double *vectorB, int count) {
+    double dotProduct = 0.0;
     double normA = 0.0;
     double normB = 0.0;
-    vDSP_svesqD(vectorA, 1, &normA, count);
-    vDSP_svesqD(vectorB, 1, &normB, count);
+
+#ifdef __APPLE__
+    vDSP_dotprD(vectorA, 1, vectorB, 1, &dotProduct, (vDSP_Length)count);
+    vDSP_svesqD(vectorA, 1, &normA, (vDSP_Length)count);
+    vDSP_svesqD(vectorB, 1, &normB, (vDSP_Length)count);
+#else
+    for (int i = 0; i < count; i++) {
+        dotProduct += vectorA[i] * vectorB[i];
+        normA += vectorA[i] * vectorA[i];
+        normB += vectorB[i] * vectorB[i];
+    }
+#endif
 
     normA = sqrt(normA);
     normB = sqrt(normB);
@@ -80,196 +192,285 @@ double CosineDistance(const double *vectorA, const double *vectorB, size_t count
 }
 
 //-------------------------------------------------------------------
-float CosineDistanceFloat(const float *vectorA, const float *vectorB, size_t count) {
-    float dotProduct = 0.0;
-    vDSP_dotpr(vectorA, 1, vectorB, 1, &dotProduct, count);
+float CosineDistanceFloat(const float *vectorA, const float *vectorB, int count) {
+    float dotProduct = 0.0f;
+    float normA = 0.0f;
+    float normB = 0.0f;
 
-    float normA = 0.0;
-    float normB = 0.0;
-    vDSP_svesq(vectorA, 1, &normA, count);
-    vDSP_svesq(vectorB, 1, &normB, count);
+#ifdef __APPLE__
+    vDSP_dotpr(vectorA, 1, vectorB, 1, &dotProduct, (vDSP_Length)count);
+    vDSP_svesq(vectorA, 1, &normA, (vDSP_Length)count);
+    vDSP_svesq(vectorB, 1, &normB, (vDSP_Length)count);
+#else
+    for (int i = 0; i < count; i++) {
+        dotProduct += vectorA[i] * vectorB[i];
+        normA += vectorA[i] * vectorA[i];
+        normB += vectorB[i] * vectorB[i];
+    }
+#endif
+
+    normA = sqrtf(normA);
+    normB = sqrtf(normB);
+
+    if (normA == 0.0f || normB == 0.0f) {
+        return NAN;
+    }
+
+    return 1.0f - (dotProduct / (normA * normB));
+}
+
+//=====================================================================
+double CosineDistanceComplex(const complex double *vectorA, const complex double *vectorB, int count) {
+    complex double dotProduct = 0.0 + 0.0 * I;
+    double normA = 0.0;
+    double normB = 0.0;
+
+#ifdef __APPLE__
+    cblas_zdotc_sub(count, vectorA, 1, vectorB, 1, &dotProduct);
+    normA = cblas_dznrm2(count, vectorA, 1);
+    normB = cblas_dznrm2(count, vectorB, 1);
+#else
+    for (int i = 0; i < count; i++) {
+        dotProduct += conj(vectorA[i]) * vectorB[i];
+        normA += creal(vectorA[i]) * creal(vectorA[i]) + cimag(vectorA[i]) * cimag(vectorA[i]);
+        normB += creal(vectorB[i]) * creal(vectorB[i]) + cimag(vectorB[i]) * cimag(vectorB[i]);
+    }
 
     normA = sqrt(normA);
     normB = sqrt(normB);
+#endif
 
     if (normA == 0.0 || normB == 0.0) {
         return NAN;
     }
 
-    return 1.0 - (dotProduct / (normA * normB));
+    return 1.0 - (cabs(dotProduct) / (normA * normB));
+}
+
+//-------------------------------------------------------------------
+float CosineDistanceComplexFloat(const complex float *vectorA, const complex float *vectorB, int count) {
+    complex float dotProduct = 0.0f + 0.0f * I;
+    float normA = 0.0f;
+    float normB = 0.0f;
+
+#ifdef __APPLE__
+    cblas_cdotc_sub(count, vectorA, 1, vectorB, 1, &dotProduct);
+    normA = cblas_scnrm2(count, vectorA, 1);
+    normB = cblas_scnrm2(count, vectorB, 1);
+#else
+    for (int i = 0; i < count; i++) {
+        dotProduct += conjf(vectorA[i]) * vectorB[i];
+        normA += crealf(vectorA[i]) * crealf(vectorA[i]) + cimagf(vectorA[i]) * cimagf(vectorA[i]);
+        normB += crealf(vectorB[i]) * crealf(vectorB[i]) + cimagf(vectorB[i]) * cimagf(vectorB[i]);
+    }
+
+    normA = sqrtf(normA);
+    normB = sqrtf(normB);
+#endif
+
+    if (normA == 0.0f || normB == 0.0f) {
+        return NAN;
+    }
+
+    return 1.0f - (cabsf(dotProduct) / (normA * normB));
 }
 
 //=====================================================================
-double VectorNorm(const double *vector, size_t count, const char *type) {
+double VectorNorm(const double *vector, int count, const char *type) {
     double result = 0.0;
 
+#ifdef __APPLE__
     if (strcmp(type, "1") == 0) {
-        vDSP_svemgD(vector, 1, &result, count);
+        vDSP_svemgD(vector, 1, &result, (vDSP_Length)count);
     } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
-        vDSP_maxmgvD(vector, 1, &result, count);
+        vDSP_maxmgvD(vector, 1, &result, (vDSP_Length)count);
     } else if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
-        vDSP_svesqD(vector, 1, &result, count);
+        vDSP_svesqD(vector, 1, &result, (vDSP_Length)count);
         result = sqrt(result);
     } else {
-        // Invalid norm type, return NaN
         result = NAN;
     }
-
-    return result;
-}
-
-//-------------------------------------------------------------------
-float VectorNormFloat(const float *vector, size_t count, const char *type) {
-    float result = 0.0;
-
-    if (strcmp(type, "1") == 0) {
-        vDSP_svemg(vector, 1, &result, count);
-    } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
-        vDSP_maxmgv(vector, 1, &result, count);
-    } else if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
-        vDSP_svesq(vector, 1, &result, count);
-        result = sqrt(result);
-    } else {
-        // Invalid norm type, return NaN
-        result = NAN;
-    }
-
-    return result;
-}
-
 #else
-//=====================================================================
-// GENERIC
-//=====================================================================
-double SquaredEuclideanDistance(double *a, double *b, int n) {
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        double diff = a[i] - b[i];
-        sum += diff * diff;
+    if (strcmp(type, "1") == 0) {
+        for (int i = 0; i < count; i++) {
+            result += fabs(vector[i]);
+        }
+    } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
+        for (int i = 0; i < count; i++) {
+            double mag = fabs(vector[i]);
+            if (mag > result) {
+                result = mag;
+            }
+        }
+    } else if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
+        for (int i = 0; i < count; i++) {
+            result += vector[i] * vector[i];
+        }
+        result = sqrt(result);
+    } else {
+        result = NAN;
     }
-    return sum;
+#endif
+
+    return result;
 }
 
 //-------------------------------------------------------------------
-float SquaredEuclideanDistanceFloat(float *a, float *b, int n) {
-    float sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        float diff = a[i] - b[i];
-        sum += diff * diff;
-    }
-    return sum;
-}
+double VectorNormComplex(const complex double *vector, int count, const char *type) {
+    double result = 0.0;
 
-//=====================================================================
-double EuclideanDistance(double *a, double *b, int n) {
-    double squaredDistance = SquaredEuclideanDistance(a, b, n);
-    return sqrt(squaredDistance);
-}
-
-//---------------------------------------------------------------------
-float EuclideanDistanceFloat(float *a, float *b, int n) {
-    float squaredDistance = SquaredEuclideanDistance(a, b, n);
-    return sqrt(squaredDistance);
-}
-
-//=====================================================================
-double DotProduct(double *a, double *b, int n) {
-    double dot_product = 0.0;
-    for (int i = 0; i < n; i++) {
-        dot_product += a[i] * b[i];
+#ifdef __APPLE__
+    if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
+        return cblas_dznrm2(count, vector, 1);
     }
-    return dot_product;
-}
 
-//---------------------------------------------------------------------
-float DotProductFloat(float *a, float *b, int n) {
-    float dot_product = 0.0;
-    for (int i = 0; i < n; i++) {
-        dot_product += a[i] * b[i];
-    }
-    return dot_product;
-}
+    DSPDoubleSplitComplex split;
+    split.realp = (double *)malloc((size_t)count * sizeof(double));
+    split.imagp = (double *)malloc((size_t)count * sizeof(double));
+    double *magnitudes = (double *)malloc((size_t)count * sizeof(double));
 
-//=====================================================================
-double CosineDistance(double *a, double *b, int n) {
-    double dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
-    for (int i = 0; i < n; i++) {
-        dot_product += a[i] * b[i];
-        norm_a += a[i] * a[i];
-        norm_b += b[i] * b[i];
+    if (split.realp == NULL || split.imagp == NULL || magnitudes == NULL) {
+        free(split.realp);
+        free(split.imagp);
+        free(magnitudes);
+        return NAN;
     }
-    if (norm_a == 0.0 || norm_b == 0.0) {
-        return 1.0;
-    }
-    return 1.0 - (dot_product / (sqrt(norm_a) * sqrt(norm_b)));
-}
 
-//---------------------------------------------------------------------
-float CosineDistanceFloat(float *a, float *b, int n) {
-    float dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
-    for (int i = 0; i < n; i++) {
-        dot_product += a[i] * b[i];
-        norm_a += a[i] * a[i];
-        norm_b += b[i] * b[i];
-    }
-    if (norm_a == 0.0 || norm_b == 0.0) {
-        return 1.0;
-    }
-    return 1.0 - (dot_product / (sqrt(norm_a) * sqrt(norm_b)));
-}
-
-//=====================================================================
-double VectorNorm(double *vec, int length, const char *type) {
-    double norm = 0.0;
+    vDSP_ctozD((const DSPDoubleComplex *)vector, 2, &split, 1, (vDSP_Length)count);
+    vDSP_zvabsD(&split, 1, magnitudes, 1, (vDSP_Length)count);
 
     if (strcmp(type, "1") == 0) {
-        for (int i = 0; i < length; i++) {
-            norm += fabs(vec[i]);
+        vDSP_sveD(magnitudes, 1, &result, (vDSP_Length)count);
+    } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
+        vDSP_maxvD(magnitudes, 1, &result, (vDSP_Length)count);
+    } else {
+        result = NAN;
+    }
+
+    free(split.realp);
+    free(split.imagp);
+    free(magnitudes);
+#else
+    if (strcmp(type, "1") == 0) {
+        for (int i = 0; i < count; i++) {
+            result += cabs(vector[i]);
         }
     } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
-        for (int i = 0; i < length; i++) {
-            if (fabs(vec[i]) > norm) {
-                norm = fabs(vec[i]);
+        for (int i = 0; i < count; i++) {
+            double mag = cabs(vector[i]);
+            if (mag > result) {
+                result = mag;
             }
         }
     } else if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
-        for (int i = 0; i < length; i++) {
-            norm += vec[i] * vec[i];
+        for (int i = 0; i < count; i++) {
+            result += creal(vector[i]) * creal(vector[i]) + cimag(vector[i]) * cimag(vector[i]);
         }
-        norm = sqrt(norm);
+        result = sqrt(result);
     } else {
-        fprintf(stderr, "Unknown norm type: %s\n", type);
-        exit(EXIT_FAILURE);
+        result = NAN;
     }
-
-    return norm;
-}
-
-//---------------------------------------------------------------------
-float VectorNormFloat(float *vec, int length, const char *type) {
-    float norm = 0.0;
-
-    if (strcmp(type, "1") == 0) {
-        for (int i = 0; i < length; i++) {
-            norm += fabs(vec[i]);
-        }
-    } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
-        for (int i = 0; i < length; i++) {
-            if (fabs(vec[i]) > norm) {
-                norm = fabs(vec[i]);
-            }
-        }
-    } else if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
-        for (int i = 0; i < length; i++) {
-            norm += vec[i] * vec[i];
-        }
-        norm = sqrt(norm);
-    } else {
-        fprintf(stderr, "Unknown norm type: %s\n", type);
-        exit(EXIT_FAILURE);
-    }
-
-    return norm;
-}
-
 #endif
+
+    return result;
+}
+
+//-------------------------------------------------------------------
+float VectorNormFloat(const float *vector, int count, const char *type) {
+    float result = 0.0f;
+
+#ifdef __APPLE__
+    if (strcmp(type, "1") == 0) {
+        vDSP_svemg(vector, 1, &result, (vDSP_Length)count);
+    } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
+        vDSP_maxmgv(vector, 1, &result, (vDSP_Length)count);
+    } else if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
+        vDSP_svesq(vector, 1, &result, (vDSP_Length)count);
+        result = sqrtf(result);
+    } else {
+        result = NAN;
+    }
+#else
+    if (strcmp(type, "1") == 0) {
+        for (int i = 0; i < count; i++) {
+            result += fabsf(vector[i]);
+        }
+    } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
+        for (int i = 0; i < count; i++) {
+            float mag = fabsf(vector[i]);
+            if (mag > result) {
+                result = mag;
+            }
+        }
+    } else if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
+        for (int i = 0; i < count; i++) {
+            result += vector[i] * vector[i];
+        }
+        result = sqrtf(result);
+    } else {
+        result = NAN;
+    }
+#endif
+
+    return result;
+}
+
+//-------------------------------------------------------------------
+float VectorNormComplexFloat(const complex float *vector, int count, const char *type) {
+    float result = 0.0f;
+
+#ifdef __APPLE__
+    if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
+        return cblas_scnrm2(count, vector, 1);
+    }
+
+    DSPSplitComplex split;
+    split.realp = (float *)malloc((size_t)count * sizeof(float));
+    split.imagp = (float *)malloc((size_t)count * sizeof(float));
+    float *magnitudes = (float *)malloc((size_t)count * sizeof(float));
+
+    if (split.realp == NULL || split.imagp == NULL || magnitudes == NULL) {
+        free(split.realp);
+        free(split.imagp);
+        free(magnitudes);
+        return NAN;
+    }
+
+    vDSP_ctoz((const DSPComplex *)vector, 2, &split, 1, (vDSP_Length)count);
+    vDSP_zvabs(&split, 1, magnitudes, 1, (vDSP_Length)count);
+
+    if (strcmp(type, "1") == 0) {
+        vDSP_sve(magnitudes, 1, &result, (vDSP_Length)count);
+    } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
+        vDSP_maxv(magnitudes, 1, &result, (vDSP_Length)count);
+    } else {
+        result = NAN;
+    }
+
+    free(split.realp);
+    free(split.imagp);
+    free(magnitudes);
+#else
+    if (strcmp(type, "1") == 0) {
+        for (int i = 0; i < count; i++) {
+            result += cabsf(vector[i]);
+        }
+    } else if (strcmp(type, "infinity") == 0 || strcmp(type, "max") == 0) {
+        for (int i = 0; i < count; i++) {
+            float mag = cabsf(vector[i]);
+            if (mag > result) {
+                result = mag;
+            }
+        }
+    } else if (strcmp(type, "2") == 0 || strcmp(type, "euclidean") == 0) {
+        for (int i = 0; i < count; i++) {
+            result += crealf(vector[i]) * crealf(vector[i]) + cimagf(vector[i]) * cimagf(vector[i]);
+        }
+        result = sqrtf(result);
+    } else {
+        result = NAN;
+    }
+#endif
+
+    return result;
+}
