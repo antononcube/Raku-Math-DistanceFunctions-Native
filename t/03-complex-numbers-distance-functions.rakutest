@@ -1,0 +1,22 @@
+use v6.d;
+use Test;
+
+# use lib <. lib>;
+
+use Math::DistanceFunctions::Native;
+
+plan *;
+
+## 1
+is squared-euclidean-distance([1+1i,1+1i,0], [0+1i,1,2+1i]), 7, 'Squared Euclidean distance over arrays';
+
+## 2
+dies-ok { squared-euclidean-distance([1+1i,1+1i,0+1i,2+1i], [0+1i,1+1i,2+1i]) }, 'Squared Euclidean distance over non-same length arrays';
+
+## 3
+is euclidean-distance([1+1i,1+1i,0], [0+1i,1,2+1i]), sqrt(7), 'Euclidean distance over arrays';
+
+## 4
+is cosine-distance([1+1i,1+1i,0], [0+1i,1,2+1i]) - (1 - 1/sqrt(7)) ≤ 1e-10, True, 'Cosine distance over arrays';
+
+done-testing;

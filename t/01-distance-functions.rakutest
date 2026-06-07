@@ -1,7 +1,7 @@
 use v6.d;
 use Test;
 
-use lib <. lib>;
+# use lib <. lib>;
 
 use Math::DistanceFunctions::Native;
 
@@ -11,17 +11,20 @@ plan *;
 is cosine-distance([1,1,0], [0,1,2]), 1 - 1 / sqrt(10), 'Cosine distance over arrays';
 
 ## 2
-is euclidean-distance([1,1,0], [0,1,2]), sqrt(5), 'Euclidean distance over arrays';
+is squared-euclidean-distance([1,1,0], [0,1,2]), 5, 'Squared Euclidean distance over arrays';
 
 ## 3
-dies-ok { euclidean-distance([1,1,0,2], [0,1,2]) }, 'Euclidean distance over non-same length arrays';
+is euclidean-distance([1,1,0], [0,1,2]), sqrt(5), 'Euclidean distance over arrays';
 
 ## 4
+dies-ok { euclidean-distance([1,1,0,2], [0,1,2]) }, 'Euclidean distance over non-same length arrays';
+
+## 5
 # This does not work because of the idiotic Raku ideas about Seq and slurpy arguments.
 #is norm([1,2,3] Z- [2,4,6], p => 1), 6, '1-Norm over array';
 is norm(([1,2,3] Z- [2,4,6]).Array, p => "1"), 6, '1-Norm over array';
 
-## 5
+## 6
 is norm(v => ([1,2,3] Z- [2,4,6]).Array, p => 'max'), 3, 'Max-norm over array';
 
 done-testing;
